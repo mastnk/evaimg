@@ -10,7 +10,7 @@ except:
 	import pickle
 
 if( len(sys.argv) < 2 ):
-	print( 'Usage: {} pkl_filename'.format(sys.argv[0]) )
+	print( 'Usage: {} file_title'.format(sys.argv[0]) )
 	sys.exit()
 
 pklfile = sys.argv[1] + '.pkl'

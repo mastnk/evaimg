@@ -8,7 +8,8 @@ HTML='''
 <link rel="shortcut icon" href="favicon.ico" >
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 </header>
-<body bgcolor="#AAAAAA">
+<body bgcolor="#AAAAAA" oncontextmenu="return false;">
+
 
 <center>
 {body}
@@ -20,7 +21,6 @@ HTML='''
 
 import cgitb; cgitb.enable()
 import cgi
-from dirlist import dirlist
 
 import os
 import sys
@@ -61,6 +61,13 @@ def output_error( msg = '' ):
 	body += msg
 	output( body )
 
+def load_lst( filename ):
+	dirlist = []
+	with open( filename, 'r' ) as fp:
+		for line in fp:
+			dirlist.append( line.strip() )
+	return dirlist
+
 def analyze( lst, cur, id, form ):
 	fd = open('{lst}.lock'.format(lst=lst), 'w')
 	fcntl.flock(fd,fcntl.LOCK_EX)
@@ -98,19 +105,28 @@ else:
 	output_error( 'not found "id" in form' )
 
 try:
-	dl = dirlist()
-	dl.load( lst )
+	dirlist = load_lst( lst+'.lst' )
 except:
 	output_error( 'file not found: {}'.format(lst) )
 
-if( 'cur' in form ):
-	cur = form['cur'].value
-	analyze( lst, cur, id, form )
-	cur = dl.next( cur )
-	if( cur == '' ):
-		output_thanks()
+if( 'ind' in form ):
+	try:
+		ind = int( form['ind'].value )
+	except:
+		output_error( 'ind: {}'.format(form['ind'].value) )
 else:
-	cur = dl.first()
+	ind = 0
+
+if( ind < 0 or ind > len(dirlist) ):
+	output_error( 'out of range ind: {}'.format(ind) )
+
+if( ind > 0 ):
+	analyze( lst, dirlist[ind-1], id, form )
+
+if( ind ==  len(dirlist) ):
+	output_thanks()
+
+cur = dirlist[ind]
 
 imgfile = '{}/*.{}'.format( cur, EXT )
 try:
@@ -129,23 +145,20 @@ head ='''
 <td align="center" valign="middle"><img src="Bee.png"></td>
 <td><font size="5"><b>
 ID: {id} <br />
-{cur} in {lst}
+{cur} in {lst} ({ind}/{length})
 </b></font></td>
 </tr>
 </table>
 <hr />
-'''.format(id=id, cur=cur, lst=lst)
+'''.format(id=id, cur=cur, lst=lst, ind=ind+1, length=len(dirlist))
 
 body += head
 
 
 ##############################################################
 body += '''
-<form method="post" action="evaimg.cgi">
-<input type="hidden" name="id" value="{id}">
-<input type="hidden" name="lst" value="{lst}">
-<input type="hidden" name="cur" value="{cur}">
-'''.format(id=id, lst=lst, cur=cur)
+<form method="post" action="evaimg.cgi?id={id}&lst={lst}&ind={ind}">
+'''.format(id=id, lst=lst, ind=ind+1)
 
 templ = '''
 <img src="{src}" border="0"><br />
